@@ -113,7 +113,7 @@ def draw():
             # # C
             # T = (-0.25, 0.425, 0.35) # 或许可以用比-0.01小的值
             # 这里要优化成字典
-            draw_depth = 0.003
+            draw_depth = 0.002
             mix_place_upper_most = (-0.17, 0.50, -draw_depth)
             mix_place = list([(-0.17, 0.50 - i * 0.05, -draw_depth) for i in range(9)])
             # mix_place = [(-0.19, 0.58, -draw_depth)]
