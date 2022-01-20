@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 cv2.namedWindow('camera', cv2.WINDOW_AUTOSIZE)
 
 while cap.isOpened():
@@ -22,7 +22,8 @@ while cap.isOpened():
             k = cv2.waitKey(1)
             if k == 27 :
                 print("1")
-                cv2.imwrite(filename,img,params=None)
+                filename = 'test.png'
+                cv2.imwrite(filename, frame, params=None)
                 # cv2.destroyAllWindows()
 
             cv2.imshow('camera', frame)

@@ -4,7 +4,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 from icecream import ic
-
+from math import pi
 
 # 创建一个logger
 #logger = logging.getLogger()
@@ -844,7 +844,7 @@ class Auboi5Robot:
             logger.warn("RSHD uninitialized or not login!!!")
             return None
 
-    def move_to_target_in_cartesian(self, pos, rpy_xyz):
+    def move_to_target_in_cartesian(self, pos, rpy_xyz): # 角度
         """
         * FUNCTION:    move_to_target_in_cartesian
         * DESCRIPTION: 给出笛卡尔坐标值和欧拉角，机械臂轴动到目标位置和姿态

@@ -2,7 +2,9 @@
 # coding=utf-8
 
 # De'en 版本
-
+import _thread
+import cv2
+import numpy as np
 import time
 from multiprocessing import Process, Queue
 from math import pi, degrees, radians
@@ -14,8 +16,7 @@ SERVER_IP = '192.168.11.127'
 # SERVER_IP = '192.168.11.129'
 # SERVER_IP = '192.168.11.128'
 
-# 移动到某个点
-def move_cartesian_test():
+def draw():
     # 初始化logger
     logger_init()
 
@@ -34,6 +35,20 @@ def move_cartesian_test():
     # 打印上下文
     logger.info("robot.rshd={0}".format(handle))
 
+    cap = cv2.VideoCapture(0)
+    cv2.namedWindow('camera', cv2.WINDOW_AUTOSIZE)
+
+    ret, frame = cap.read()
+    if ret:
+        if frame is not None:
+            cv2.imshow('camera', frame)
+            cv2.waitKey(1)
+        else:
+            print("无画面")
+    else:
+        print("无法读取摄像头！")
+
+
     try:
 
         # 链接服务器
@@ -49,8 +64,8 @@ def move_cartesian_test():
             joint_maxvelc = (2.596177, 2.596177, 2.596177, 3.110177, 3.110177, 3.110177)
             joint_maxacc = (17.308779/2.5, 17.308779/2.5, 17.308779/2.5, 17.308779/2.5, 17.308779/2.5, 17.308779/2.5)
             
-            joint_maxvelc = tupleChanger(joint_maxvelc, 10)
-            joint_maxacc = tupleChanger(joint_maxacc, 10)
+            joint_maxvelc = tupleChanger(joint_maxvelc, 20)
+            joint_maxacc = tupleChanger(joint_maxacc, 20)
             # print(f"{type(joint_maxvelc)}, {joint_maxvelc}")
             # print(f"{type(joint_maxacc)}, {joint_maxacc}")
             
@@ -65,15 +80,7 @@ def move_cartesian_test():
             # robot.robot_startup()
 
             # 设置碰撞等级
-            # robot.set_collision_class(7)
-
-            # joint_radian = (1, 0, 0, 0, 0, 0)
-            # # 轴动到初始位置
-            # robot.move_joint(joint_radian)
-
-            # joint_radian = (0.541678, 0.225068, -0.948709, 0.397018, -1.570800, 0.541673)
-            # logger.info("move joint to {0}".format(joint_radian))
-            # robot.move_joint(joint_radian)
+            robot.set_collision_class(7)
 
             # 开始
 
@@ -91,125 +98,81 @@ def move_cartesian_test():
             ic(current_pos['pos']) # 法兰中心相对于基坐标的位置
             ic(current_pos['ori']) # 法兰中心相对于基坐标的姿态
 
-            # ic(robot.rpy_to_quaternion((92.04/180*pi, -46.20/180*pi, -1.81/180*pi)))
+            # 在这里出现的都是current_imaginary_user_pos
+            # 及时更新
+            current_imaginary_user_pos = (-0.19, 0.425, 0.15)
 
-            #弧度
-            # ic(robot.quaternion_to_rpy(current_pos['ori'])) 
-            # import math
-            # ic(math.degrees(1.5688836445000016), math.degrees(-0.8054248684787352), math.degrees( -0.004295073905417389))
-            
-            # current_tool = robot.get_tool_kinematics_param()
-            # ic(current_tool['pos'])
-            # ic(current_tool['ori'])
-
-            # 用户坐标转换成基坐标
-            # 在这设置目标坐标
-            pos_user = ( -0. , 0 - 0., 0.2) # 法兰
-            # pos_user = (0.1, 0.05, 0.1) # 法兰
-            # 先摆正
-            # rpy_user = tuple((i for i in robot.quaternion_to_rpy()))
-            ori_user = current_pos['ori']
-
-            userCoord = {'coord_type': RobotCoordType.Robot_World_Coordinate,
-            'calibrate_method': RobotCoordCalMethod.CoordCalMethod_xOxy,
-            'calibrate_points': 
-            {
-                'point1': (1.7801673412322998,
-                           -0.22873090207576752,
-                           -2.24575138092041,
-                           -0.30449768900871277,
-                           -1.5856152772903442,
-                           -0.030411619693040848),
-                'point2': (1.482286810874939,  
-                           -0.3715052008628845,
-                           -2.3423125743865967,  
-                           -0.2687637507915497,  
-                           -1.6264402866363525,  
-                           0.02880869247019291),
-                'point3': (1.4943876266479492,
-                           -0.2409527599811554,
-                           -2.2585678100585938,
-                           -0.3149295449256897,
-                           -1.6248520612716675,
-                           0.04082148149609566)
-            },
-            'tool_desc':{
-                'pos':(-0.023457, -0.000971, 0.274371),
-                'ori':tuple(robot.rpy_to_quaternion((3.134034/180*pi, 0.044473/180*pi, 3.071751/180*pi)))
-            }}
-            userTool = {
-                'pos':(-0.023457, -0.000971, 0.274371),
-                'ori':tuple(robot.rpy_to_quaternion((3.134034/180*pi, 0.044473/180*pi, 3.071751/180*pi)))
+            dip_depth = 0.005
+            # 第1个笔刷, Target
+            T={1:
+            {'C':(-0.25, 0.425, 0.061 - dip_depth), 'M':(-0.25, 0.34, 0.056 - dip_depth),'Y':(-0.25, 0.26, 0.070 - dip_depth),
+            'K':(-0.25, 0.17, 0.041 - dip_depth),'W':(-0.25, 0.07, 0.060 - dip_depth)}
             }
-            ret_base = robot.user_to_base(pos_user, ori_user, userCoord, userTool)
-            ic(ret_base['pos'], ret_base['ori'])
+            # # W 
+            # # T = (-0.25, 0.07, 0.15) # 或许可以用比-0.01小的值
+            # # C
+            # T = (-0.25, 0.425, 0.35) # 或许可以用比-0.01小的值
+            # 这里要优化成字典
+            draw_depth = 0.003
+            mix_place_upper_most = (-0.17, 0.50, -draw_depth)
+            mix_place = list([(-0.17, 0.50 - i * 0.05, -draw_depth) for i in range(9)])
+            # mix_place = [(-0.19, 0.58, -draw_depth)]
 
+            # T = (0., 0, -0.01) # 想象中的用户坐标系
+            for ind, i in enumerate(mix_place):
+                if ind in list(range(4)):
+                    continue
+                # move_cartesian_in_up_way(robot, T[1]['C'])
+                move_cartesian_in_up_way(robot, i)
+                mix_movement(robot, i)
+                up_to_15mm(robot)
 
+                # mere_move_cartesian(robot, (-0.25, 0.425, 0.15))
 
+                # print('hello')
+                time.sleep(1)
+                ret, frame = cap.read()
+                if ret:
+                    if frame is not None:
+                        # gs_frame = cv2.GaussianBlur(frame, (5, 5), 0)                     # 高斯模糊
+                        # hsv = cv2.cvtColor(gs_frame, cv2.COLOR_BGR2HSV)                 # 转化成HSV图像
+                        # erode_hsv = cv2.erode(hsv, None, iterations=2)                   # 腐蚀 粗的变细
+                        # inRange_hsv = cv2.inRange(erode_hsv, color_dist[ball_color]['Lower'], color_dist[ball_color]['Upper'])
+                        # cnts = cv2.findContours(inRange_hsv.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[-2]
 
+                        # c = max(cnts, key=cv2.contourArea)
+                        # rect = cv2.minAreaRect(c)
+                        # box = cv2.boxPoints(rect)
+                        # cv2.drawContours(frame, [np.int0(box)], -1, (0, 255, 255), 2)
 
-            # 逆解
-            # 法兰与工具末端z值相差0.1
-            # 把位姿转化成轴动
-            joint_radian = current_pos['joint']
+                        k = cv2.waitKey(1)
+                        # if k == 27 :
+                            # print("1")
+                        filename = f'uppermost-{ind}.png'
+                        cv2.imwrite(filename, frame, params=None)
+                            # cv2.destroyAllWindows()
+
+                        cv2.imshow('camera', frame)
+                        cv2.waitKey(1)
+                    else:
+                        print("无画面")
+                else:
+                    print("无法读取摄像头！")
+
             
-            dst = {'pos': tuple(ret_base['pos']), 'ori': tuple(ret_base['ori'])} 
 
-            # ik_result = robot.inverse_kin(joint_radian, dst['pos'], current_pos['ori'])
-            ik_result = robot.inverse_kin(joint_radian, dst['pos'], dst['ori'])
-            ic(ik_result)
-
-            robot.move_joint(ik_result['joint'])
-            # robot.move_line(ik_result['joint'])
-
-
-            # 工具的位置和姿态
-            # 工具转轴的向量（相对于法兰盘，这样需要测量得到x,y,z本测试样例默认以x=0,y=0,ｚ轴为0.1米）
-            # tool_pos_on_end = (0, 0, 0.10)
-
-            # # 工具姿态（w,x,y,z 相对于法兰盘，不知道的情况下，默认填写如下信息）
-            # tool_ori_on_end = (1, 0, 0, 0)
-
-            # # 描述字典
-            # tool_desc = {"pos": tool_pos_on_end, "ori": tool_ori_on_end}
-
-            # # 得到法兰盘工具末端点相对于基座坐标系中的位置
-            # tool_pos_on_base = robot.base_to_base_additional_tool(current_pos['pos'],
-            #                                                       current_pos['ori'],
-            #                                                       tool_desc)
-
-            # logger.info("current_pos={0}".format(current_pos['pos'][0]))
-
-            # logger.info("tool_pos_on_base={0}".format(tool_pos_on_base['pos'][0]))
-
-            # # 讲工具转轴向量平移到基座坐标系下(旋转方向符合右手准则)
-            # rotate_axis = map(lambda a, b: a - b, tool_pos_on_base['pos'], current_pos['pos'])
-
-            # logger.info("rotate_axis={0}".format(rotate_axis))
-
-            # # 坐标系默认使用基座坐标系（默认填写下面的值就可以了）
-            # user_coord = {'coord_type': RobotCoordType.Robot_Base_Coordinate,
-            #               'calibrate_method': 0,
-            #               'calibrate_points':
-            #                   {"point1": (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-            #                    "point2": (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
-            #                    "point3": (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)},
-            #               'tool_desc':
-            #                   {"pos": (0.0, 0.0, 0.0),
-            #                    "ori": (1.0, 0.0, 0.0, 0.0)}
-            #               }
-
-            # 调用转轴旋转接口，最后一个参数为旋转角度（弧度）
-            # robot.move_rotate(user_coord, rotate_axis, 1)
-            # robot.move_rotate(user_coord, rotate_axis, -1)
 
             # 断开服务器链接
-            robot.disconnect()
+            # robot.disconnect()
 
     except RobotError as e:
         logger.error("robot Event:{0}".format(e))
 
     finally:
+
+        cap.release()
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
         # 断开服务器链接
         if robot.connected:
             # 断开机械臂链接
@@ -218,4 +181,79 @@ def move_cartesian_test():
         Auboi5Robot.uninitialize()
 
 
-move_cartesian_test()
+def up_to_15mm(robot): 
+    # 做个判断，如果已经那么高了就不用再加了
+    # 沿Ｚ轴运动0.1毫米
+    current_pos = robot.get_current_waypoint()
+
+    # if current_pos['pos'][2] <= 0.46096235061927077 + 0.14:
+    
+    # 下降了10cm，因此单位是米
+    O = (0.2587857035467645, -0.6103817043849445, 0.46096235061927077)
+    
+    current_pos['pos'][2] = 0.15 + O[2]
+    # current_pos['pos'][2] += 0.15
+    # current_pos['pos'][2] -= 0.001
+    
+    ik_result = robot.inverse_kin(current_pos['joint'], current_pos['pos'], current_pos['ori'])
+    # logger.info(ik_result)
+    
+    robot.move_line(ik_result['joint'])
+
+def mix_movement(robot, current):
+    for i in range(3):
+        pos = ( current[0] + 0.01, current[1], current[2]) # 法兰
+    
+        # pos_user = (0.1, 0.05, 0.1) # 法兰
+        
+        mere_move_cartesian(robot, pos)
+
+        mere_move_cartesian(robot, current)
+
+# 移动到某个点，用笛卡尔坐标
+def move_cartesian_in_up_way(robot, to_):
+            # 在这里出现的都是current_imaginary_user_pos
+    # 注意安全，在这个函数里首先，抬起，到0.15m的高度，在这个高度下水平移动，再，落下，到目标点位
+    # 因而需要from的点
+    # 抬起，移动，落下
+
+    # 抬起
+
+    # 用户坐标转换成基坐标
+    # 在这设置目标坐标
+    # pos = ( from_[0], from_[1], 0.15) # 法兰
+    
+    # # pos_user = (0.1, 0.05, 0.1) # 法兰
+    
+    # mere_move_cartesian(robot, pos)
+    up_to_15mm(robot)
+
+    pos_to = ( to_[0], to_[1], 0.15) # 法兰
+    
+    # 移动，
+    mere_move_cartesian(robot, pos_to)
+    
+    # 落下
+    mere_move_cartesian(robot, to_)
+
+# 移动到某个点，用笛卡尔坐标
+def mere_move_cartesian(robot, to_):
+    # 用户坐标转换成基坐标
+    # 在这设置目标坐标
+    O = (0.2587857035467645, -0.6103817043849445, 0.46096235061927077)
+    
+    T = to_
+    
+    pos = ( O[0] - T[0], O[1] - T[1], O[2] + T[2]) # 法兰
+    # pos_user = (0.1, 0.05, 0.1) # 法兰
+    # 先摆正
+    # rpy_user = tuple((i for i in robot.quaternion_to_rpy()))
+    ori = [7.900953430891173e-07,0.7071120073763648,-0.7071015549415427,-4.774523074271425e-06]
+
+    robot.move_to_target_in_cartesian(pos, list([degrees(i) for i in robot.quaternion_to_rpy(ori)]))
+
+def tupleChanger(tup, divisor):
+    return tuple((i / divisor for i in tup))
+
+# _thread.start_new_thread( color,  ())
+draw()
