@@ -1,3 +1,4 @@
+from enum import Flag
 from drawing_robot import drawing_robot
 from my_utils import *
 
@@ -6,11 +7,6 @@ from my_utils import *
 def draw(num_brush):
     robot, handle = robot_init()
     cap = cv2.VideoCapture(0) # 打开相机
-    
-    # 显示都用plt试试
-    # cv2.namedWindow('camera', cv2.WINDOW_AUTOSIZE)
-    # 先不读试试，遇到问题了再想如何解决
-    # read_one_frame(cap) 
 
     try:
         result = robot.connect(SERVER_IP, port = 8899) # 链接服务器
@@ -27,12 +23,12 @@ def draw(num_brush):
                 drawing_robo.init_save_ok_color_pos() # 需要时调用
                 drawing_robo.init_save_state() # 这两个表格自己看着调整
 
-            drawing_robo.recall_state() # 暂定为1行，画到哪儿了
-            ic('这个是将要去mix的place', drawing_robot.mix_place_count)
+            drawing_robo.recall_state() # 暂定为1行：画到哪儿了，颜色调到哪了
+            # ic('这个是将要去mix的place', drawing_robot.mix_place_count)
             
             # 首先读出需要的颜色等等
             data_transfer_df = pd.read_csv('happy_data_transfer_df_brush_1.csv') # 画什么
-            max_s_x = np.max(data_transfer_df['start_point_x'])
+            max_s_x = np.max(data_transfer_df['start_point_x']) # 标准化
             min_s_x = np.min(data_transfer_df['start_point_x'])
             
             max_s_y = np.max(data_transfer_df['start_point_y'])
@@ -44,11 +40,11 @@ def draw(num_brush):
             max_e_y = np.max(data_transfer_df['end_point_y'])
             min_e_y = np.min(data_transfer_df['end_point_y'])
 
-            #首先确定要画的，从robo记忆中的这幅画要去画的笔画开始
-            tmp = drawing_robo.num_physical_stroke
+            tmp = drawing_robo.num_physical_stroke #首先确定要画的，从robo记忆中的这幅画要去画的笔画开始
             ic('从robo记忆中的这幅画要去画的笔画：')
             ic(tmp)
-            data_transfer_df = data_transfer_df.loc[str(int(tmp) - 1):] # 从哪里开始画
+            data_transfer_df = data_transfer_df.iloc[int(tmp) - 1:] # 从哪里开始画
+            # data_transfer_df = data_transfer_df.loc[str(int(tmp) - 1):] # 从哪里开始画
             # data_transfer_df = data_transfer_df.iloc[int(tmp):]
 
             for index, row in data_transfer_df.iterrows(): # 一笔一笔画
@@ -59,8 +55,8 @@ def draw(num_brush):
                 
                 # num_stroke = int(row['num_stroke'])
                 assert num_brush == int(row['num_brush'])
-                # 记得单位转换，将像素（毫米）转化成米
-                s_x = row['start_point_x']
+
+                s_x = row['start_point_x'] # 记得单位转换，将像素（毫米）转化成米
                 s_y = row['start_point_y'] 
                 e_x = row['end_point_x'] 
                 e_y = row['end_point_y'] 
@@ -89,9 +85,12 @@ def draw(num_brush):
                 b_t = int(row['b'])
                 drawing_robo.set_target_color(r_t, g_t, b_t)
                 
-                if drawing_robot.current_C_in_rgb != (r_t, g_t, b_t):
+                # 换颜色了
+                if not drawing_robo.judge_similar(RGB2CMYK(drawing_robo.current_C_in_rgb), RGB2CMYK((r_t, g_t, b_t))) :
                     ic('找找有没有相似的颜色')
                     drawing_robo.look_color_t_up_in_table()
+                    
+                    drawing_robo.enought_pigments = False
                     
                     if drawing_robo.got_pos:
                         ic('已经调过这种颜色，获取到该mix的位置')
@@ -103,30 +102,34 @@ def draw(num_brush):
                         # up_to_15mm(robot)
                 
                     else:
+                        drawing_robo.got_pos = None # 因为这个变量的存在与否会影响到mix_pigment
                         ic('未找到相似颜色，则去下一个调色的位置进行调色')
 
                 # 混合颜色，这里有一个循环需要一直调色
                 # while True:
-                while not drawing_robo.enought_pigments and True:
+                flag = False
+                mix_count = 0
+                while not drawing_robo.enought_pigments:
                 # while not got_pos and not drawing_robo.enought_pigments and True:
                 
-                    drawing_robo.calc_color_m()
-                    ic('需要的颜色', drawing_robo.C_m)
-                    
-                    drawing_robo.calc_L() 
-                    
-                    ic('检测到的颜色', drawing_robo.C_d)
-                    ic('目标颜色', drawing_robo.C_t)
-                    ic('最大的差的通道', drawing_robo.L)
+                    if not drawing_robo.got_pos or flag:
+                        drawing_robo.calc_color_m()
+                        # ic('需要的颜色', drawing_robo.C_m)
+                        
+                        drawing_robo.calc_L() 
+                        
+                        # ic('检测到的颜色', drawing_robo.C_d)
+                        # ic('目标颜色', drawing_robo.C_t)
+                        # ic('最大的差的通道', drawing_robo.L)
 
-                    drawing_robo.calc_dip_depth_accor_to_L()    
-                    drawing_robo.calc_pigments_color_target_coord()                             
-                    
-                    drawing_robo.get_pigment(robot) # 取得这种颜色，每句话的开始执行时和结束执行时都是低于15cm的
+                        drawing_robo.calc_dip_depth_accor_to_L()    
+                        drawing_robo.calc_pigments_color_target_coord()                             
+                        
+                        drawing_robo.get_pigment(robot) # 取得这种颜色，每句话的开始执行时和结束执行时都是低于15cm的
                     
                     # 先在这里mix看看
                     dest = drawing_robo.mix_pigment(robot) # 每句话的开始执行时和结束执行时都是低于15cm的
-                    ic('将要移动到mix的位置', dest)
+                    # ic('将要移动到mix的位置', dest)
                     
                     drawing_robo.capture_color(robot, cap)
                     
@@ -135,27 +138,44 @@ def draw(num_brush):
                     drawing_robo.all_colors_and_show()
 
                     drawing_robo.calc_L()
-                    ic('识别结果', drawing_robo.C_d, drawing_robo.L)
+                    ic('识别结果', drawing_robo.C_t, drawing_robo.C_d, drawing_robo.L)
 
-                    if drawing_robo.L <= L_th:
+                    if drawing_robo.L <= L_th or mix_count == max_mix_count:
                         ic('颜色已经足够相似')
-                        drawing_robo.save_ok_color_pos()
-                        drawing_robo.state_mix_place_count_incre()
+                        if not drawing_robo.got_pos:
+                            drawing_robo.save_ok_color_pos()
+                        
+                        if not drawing_robo.got_pos:
+                            drawing_robo.state_mix_place_count_incre()
+                            # ic('这个是将要去mix的place', self.mix_place_count)
+                        
                         drawing_robo.enought_pigments = True
+                        drawing_robo.current_C_in_rgb = (r_t, g_t, b_t)
+
+                        flag = False
+                        mix_count = 0
+
                         break
+                    else:
+                        mix_count += 1
+                        if drawing_robo.got_pos: 
+                            flag = True # 当调色盘有那种颜色，但是调色盘上颜料不够时
 
                 # 真正开始绘画阶段
-                ic('将要移去的起始点')
-                ic((start_point_x, start_point_y, drawing_robo.mix_place[num_brush][0][2]))
-                ic('将要移去的终点')
-                ic((end_point_x, end_point_y, drawing_robo.mix_place[num_brush][0][2]))
-                drawing_robo.draw(robot, start_point_x, start_point_y, end_point_x, end_point_y)
-                ic('记录一下要去画哪一笔了', drawing_robo.num_physical_stroke)
+                # ic('将要移去的起始点')
+                # ic((start_point_x, start_point_y, drawing_robo.mix_place[num_brush][0][2]))
+                # ic('将要移去的终点')
+                # ic((end_point_x, end_point_y, drawing_robo.mix_place[num_brush][0][2]))
+                # drawing_robo.draw(robot, start_point_x, start_point_y, end_point_x, end_point_y)
+                drawing_robo.draw_with_end_dot_by_mid_point(robot, start_point_x, start_point_y, end_point_x, end_point_y)
+                
+                # ic('记录一下要去画哪一笔了', drawing_robo.num_physical_stroke)
                 drawing_robo.state_num_physical_stroke_incre()
+                # ic('这个是将要去画的物理笔画', self.num_physical_stroke)
 
                 drawing_robo.check_every_num_physical_stroke_count = (drawing_robo.check_every_num_physical_stroke_count + 1) % check_every_num_physical_stroke
                 if drawing_robo.check_every_num_physical_stroke_count == 0:
-                    draw_with_end_dot
+                    # draw_with_end_dot
                     
                     ic('开始例行检查颜料是否充足')
                     drawing_robo.capture_color(robot, cap)

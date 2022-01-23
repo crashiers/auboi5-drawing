@@ -74,7 +74,7 @@ def calibration_include_camera_for_each_brush(num_brush):
             #     print("无法读取摄像头！")
             
             # get_current_robo_state(robot) # 1
-            # mere_move_cartesian(robot, (0, 0, 0))
+            # mere_move_cartesian(robot, (0.0, 0, 0.0))
 
             # up_to_height_in_the_air(robot, height_in_the_air) # 2 
 
@@ -104,13 +104,12 @@ def calibration_include_camera_for_each_brush(num_brush):
 
             # drawing_robo.all_colors_and_show()
 
+            # 就用这个函数最好！
+            # drawing_robo.draw_with_end_dot_by_mid_point( robot, 0.25, 0.25, 0.25, 0.) # 7
             # drawing_robo.draw_with_end_dot( robot, 0, 0.25, 0.25, 0.25) # 6
             # drawing_robo.draw_with_end_dot( robot, 0.25, 0.25, 0.25, 0.) # 7
 
             # drawing_robo.draw_with_end_dot( robot, 0, 0.25, 0.25, 0.25) # 6
-            
-            # 就用这个函数最好！
-            drawing_robo.draw_with_end_dot_by_mid_point( robot, 0.25, 0.25, 0.25, 0.) # 7
             
             # 废弃
             # drawing_robo.draw_with_end_dot_in_track( robot, 0.25, 0.25, 0.25, 0.) # 7

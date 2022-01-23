@@ -15,20 +15,25 @@ from PIL import Image
 # 识别颜色不对就要把相机拔下来重新插电
 
 # 全局变量
+max_mix_count = 3
 init_two_saves = False
 ion = True
 # robot要多用力画
-original_draw_depth = 0.000
-# original_draw_depth = 0.003
-speed_divisor = 5
+# original_draw_depth = 0.000
+original_draw_depth = 0.003
+speed_divisor = 5 # 5是极限了，再快固定不住
 
 # canvas_height = - 0.01 # 画画的位置跟调色的z坐标本就不同
-canvas_height = - 0.008 # 画画的位置跟调色的z坐标本就不同
-CANVAS_X = 526
-CANVAS_Y = 373
+canvas_height = + 0.032 - 0.004 - 0.008 # 画画的位置跟调色的z坐标本就不同
+canvas_offset_x = 0.205
+# CANVAS_X = 295 - 10 * 2
+# CANVAS_Y = 205
 
-# CANVAS_X = 600
-# CANVAS_Y = 500
+# CANVAS_X = 526
+# CANVAS_Y = 373
+
+CANVAS_X = 600 -  10 * 2
+CANVAS_Y = 500 - 5
 
 original_mix_depth = 0.001
 
@@ -37,18 +42,22 @@ pigments_height_adj = 0.00
 height_in_the_air = 0.15
 mix_place_xy = {1:
             [(-0.17 + 0.05 * j, 0.50 - i * 0.05) 
-            for j in range(4) for i in range(9) ],
+            for j in range(4) for i in range(13) ],
+            # for j in range(4) for i in range(9) ],
             2:
             [(-0.17 + 0.05 * j, 0.50 - i * 0.05) 
-            for j in range(4) for i in range(9) ]
+            for j in range(4) for i in range(13) ]
+            # for j in range(4) for i in range(9) ]
             }
 
 # 颜料高度，单位米
-pigments_height = {'C': 0.080 - 0.004, 'M': 0.060 - 0.004, 'Y': 0.070 - 0.004, 'K': 0.058 - 0.004, 'W': 0.070 - 0.004}
+pigments_height = {
+    'C': 0.065 - 0.004, 'M': 0.041 - 0.004, 'Y': 0.065 - 0.004, 'K': 0.058 - 0.004, 'W': 0.070 - 0.004
+    }
 
 # 大窗口
 window_every_brush = {1:
-np.array([(345 - 5, 326), (356, 339)])
+np.array([(345 - 5 * 2, 326 - 2), (356 - 5, 339)])
 }
 
 # # 用9*9的中间的小区域做均值
@@ -66,14 +75,15 @@ np.array([(345 - 5, 326), (356, 339)])
 # # ic(win_new)
 
 
-# L_th = 0.25 # 相似容忍度，0 to 1
-L_th = 0.38 # 0 to 1
+L_th = 0.25 # 相似容忍度，0 to 1
+# L_th = 0.38 # 0 to 1
+# L_th = 0.38 # 0 to 1
 # L_th = 0.15 # 0 to 1
 
 # original_dip_depth = 0.000
 original_dip_depth = 0.009
 
-calibrate_coord_origin = [0.18692186390949894, -0.5729913349208146, 0.46122765332953924]
+calibrate_coord_origin = [0.2446267249547194, -0.5945356050711661, 0.46189274173878764]
 calibrate_T_xy = {'C':(-0.285, 0.43), 
             'M':(-0.285, 0.35),
             'Y':(-0.285, 0.27),
@@ -81,7 +91,8 @@ calibrate_T_xy = {'C':(-0.285, 0.43),
             'W':(-0.285, 0.09)}
 
 mix_movement_length = 0.010
-check_every_num_physical_stroke = 5
+check_every_num_physical_stroke = 10
+# check_every_num_physical_stroke = 5
 
 from_color_to_int = {'C':0 , 'M':1 , 'Y':2 , 'K':3 , 'W': 4}
 

@@ -79,31 +79,36 @@ class drawing_robot():
         }
 
     def state_mix_place_count_incre(self):
+        state_df = pd.read_csv('save_state.csv') 
+        assert int(state_df.iloc[0]['mix_place_count']) == self.mix_place_count
+        
         self.mix_place_count += 1
 
-        state_df = pd.read_csv('save_state.csv') 
-
         # 这个是将要去mix的place
-        state_df.iloc[0]['mix_place_count'] = self.mix_place_count
+        state_df.iloc[0, 0] = self.mix_place_count
+        # state_df.iloc[0]['mix_place_count'] = self.mix_place_count
         # state_df[state_df['drawing_name']==self.drawing_name].iloc[0]['mix_place_count'] = self.mix_place_count
-        ic('这个是将要去mix的place', self.mix_place_count)
         state_df.to_csv('save_state.csv', index=False)
     
     def state_num_physical_stroke_incre(self):
+        state_df = pd.read_csv('save_state.csv') 
+        assert int(state_df.iloc[0]['num_physical_stroke']) == self.num_physical_stroke
+        
         self.num_physical_stroke += 1
 
-        state_df = pd.read_csv('save_state.csv') 
-
-        state_df.iloc[0]['num_physical_stroke'] = self.num_physical_stroke
+        state_df.iloc[0, 2] = self.num_physical_stroke
+        # state_df.iloc[0]['num_physical_stroke'] = self.num_physical_stroke
         # state_df[state_df['drawing_name']==self.drawing_name].iloc[0]['num_physical_stroke'] = self.num_physical_stroke
-        ic('这个是将要去画的物理笔画', self.num_physical_stroke)
         state_df.to_csv('save_state.csv', index=False)
+    
+    def judge_similar(self, i, j):
+        return np.max(np.abs(np.array(i) - np.array(j))) < L_th
     
     def look_color_t_up_in_table(self):
         df_read = pd.read_csv(f'save_ok_color_pos.csv') # 读取表格
         self.got_pos = None
         for ind, i in df_read.iterrows():
-            if np.max(np.abs(np.array((i['C'], i['M'], i['Y'], i['K'])) - self.C_t)) < L_th:
+            if self.judge_similar((i['C'], i['M'], i['Y'], i['K']), self.C_t):
                 self.got_pos = (i['x'], i['y'], i['z'])
     
     def save_ok_color_pos(self):
@@ -112,7 +117,8 @@ class drawing_robot():
             'x': self.mix_place[self.num_brush][self.mix_place_count][0], 
             'y': self.mix_place[self.num_brush][self.mix_place_count][1],
             'z': self.mix_place[self.num_brush][self.mix_place_count][2], 
-            'C': self.C_d[0], 'M': self.C_d[1], 'Y': self.C_d[2], 'K': self.C_d[3]
+            'C': self.C_t[0], 'M': self.C_t[1], 'Y': self.C_t[2], 'K': self.C_t[3]
+            # 'C': self.C_d[0], 'M': self.C_d[1], 'Y': self.C_d[2], 'K': self.C_d[3]
         }, ignore_index=True)
         df_update.to_csv(f'save_ok_color_pos.csv', index=False)
 
@@ -172,7 +178,7 @@ class drawing_robot():
         if ion:
             plt.ion()
         
-        fig = plt.figure()
+        fig = plt.figure('Figure 1')
         ax1 = fig.add_subplot(221)
         ax2 = fig.add_subplot(222)
         ax3 = fig.add_subplot(223)
@@ -234,6 +240,9 @@ class drawing_robot():
         
         plt.show()
 
+        # time.sleep(5)
+        # plt.close()
+
 
     def recog_mean_color_for_window(self, window):
         # 识别结果
@@ -283,17 +292,17 @@ class drawing_robot():
         
         
         mere_move_cartesian(robot, 
-        (start_point_x, start_point_y, canvas_height + self.mix_place[self.num_brush][0][2] + 0.01))
+        (canvas_offset_x + start_point_x, start_point_y, canvas_height + self.mix_place[self.num_brush][0][2] + 0.02))
         mere_move_cartesian(robot, 
-        (start_point_x, start_point_y, canvas_height + self.mix_place[self.num_brush][0][2]))
+        (canvas_offset_x + start_point_x, start_point_y, canvas_height + self.mix_place[self.num_brush][0][2]))
 
-        mid_points = calc_mid_points(start_point_x, start_point_y, end_point_x, end_point_y)
+        mid_points = calc_mid_points(canvas_offset_x + start_point_x, start_point_y, canvas_offset_x + end_point_x, end_point_y)
         for i in mid_points:
             mere_move_cartesian(robot, 
         (i[0], i[1], canvas_height + self.mix_place[self.num_brush][0][2]))
 
         mere_move_cartesian(robot, 
-        (end_point_x, end_point_y, canvas_height + self.mix_place[self.num_brush][0][2]))
+        (canvas_offset_x + end_point_x, end_point_y, canvas_height + self.mix_place[self.num_brush][0][2]))
 
     # 就画一笔，轨迹运动
     # 废弃
