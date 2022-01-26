@@ -7,10 +7,19 @@ class drawing_robot():
         self.draw_depth = original_draw_depth # robot要多用力画
         # robot要调色的地方的坐标
         self.mix_place = {1:list(
-            [(mix_place_xy[1][i][0], mix_place_xy[1][i][1], -self.draw_depth) for i in range(len(mix_place_xy[1])) ]
+            [(mix_place_xy[1][i][0], mix_place_xy[1][i][1], - original_mix_depth) for i in range(len(mix_place_xy[1])) ]
             ),
             2:list(
-            [(mix_place_xy[2][i][0], mix_place_xy[2][i][1], -(0.315-0.313) -self.draw_depth) for i in range(len(mix_place_xy[2])) ]
+            [(mix_place_xy[2][i][0], mix_place_xy[2][i][1], -(0.315-0.313) - original_mix_depth) for i in range(len(mix_place_xy[2])) ]
+            ),
+            3:list(
+            [(mix_place_xy[3][i][0], mix_place_xy[3][i][1], -(0.315-0.305) - original_mix_depth) for i in range(len(mix_place_xy[3])) ]
+            ),
+            4:list(
+            [(mix_place_xy[4][i][0], mix_place_xy[4][i][1], -(0.315-0.300) - original_mix_depth) for i in range(len(mix_place_xy[4])) ]
+            ),
+            5:list(
+            [(mix_place_xy[5][i][0], mix_place_xy[5][i][1], -(0.315-0.290) - original_mix_depth) for i in range(len(mix_place_xy[5])) ]
             )
             }
 
@@ -34,7 +43,8 @@ class drawing_robot():
         # 这个是将要去mix的place
         df = self.state_df
         self.mix_place_count = int(df.iloc[0]['mix_place_count'])
-        self.num_physical_stroke = int(df.iloc[0]['num_physical_stroke'])
+        self.index = int(df.iloc[0]['index'])
+        # self.num_physical_stroke = int(df.iloc[0]['num_physical_stroke'])
 
         # df = self.state_df[self.state_df['drawing_name']==self.drawing_name]
         # self.mix_place_count = int(df.iloc[0]['mix_place_count'])
@@ -75,7 +85,25 @@ class drawing_robot():
         'M':(calibrate_T_xy['M'][0], calibrate_T_xy['M'][1], pigments_height['M'] -(0.315-0.313) - self.dip_depth + pigments_height_adj),
         'Y':(calibrate_T_xy['Y'][0], calibrate_T_xy['Y'][1], pigments_height['Y'] -(0.315-0.313) - self.dip_depth + pigments_height_adj),
         'K':(calibrate_T_xy['K'][0], calibrate_T_xy['K'][1], pigments_height['K'] -(0.315-0.313) - self.dip_depth + pigments_height_adj),
-        'W':(calibrate_T_xy['W'][0], calibrate_T_xy['W'][1], pigments_height['W'] -(0.315-0.313) - self.dip_depth + pigments_height_adj)}
+        'W':(calibrate_T_xy['W'][0], calibrate_T_xy['W'][1], pigments_height['W'] -(0.315-0.313) - self.dip_depth + pigments_height_adj)},
+        3:
+        {'C':(calibrate_T_xy['C'][0], calibrate_T_xy['C'][1], pigments_height['C'] -(0.315-0.305) - self.dip_depth + pigments_height_adj), 
+        'M':(calibrate_T_xy['M'][0], calibrate_T_xy['M'][1], pigments_height['M'] -(0.315-0.305) - self.dip_depth + pigments_height_adj),
+        'Y':(calibrate_T_xy['Y'][0], calibrate_T_xy['Y'][1], pigments_height['Y'] -(0.315-0.305) - self.dip_depth + pigments_height_adj),
+        'K':(calibrate_T_xy['K'][0], calibrate_T_xy['K'][1], pigments_height['K'] -(0.315-0.305) - self.dip_depth + pigments_height_adj),
+        'W':(calibrate_T_xy['W'][0], calibrate_T_xy['W'][1], pigments_height['W'] -(0.315-0.305) - self.dip_depth + pigments_height_adj)},
+        4:
+        {'C':(calibrate_T_xy['C'][0], calibrate_T_xy['C'][1], pigments_height['C'] -(0.315-0.300) - self.dip_depth + pigments_height_adj), 
+        'M':(calibrate_T_xy['M'][0], calibrate_T_xy['M'][1], pigments_height['M'] -(0.315-0.300) - self.dip_depth + pigments_height_adj),
+        'Y':(calibrate_T_xy['Y'][0], calibrate_T_xy['Y'][1], pigments_height['Y'] -(0.315-0.300) - self.dip_depth + pigments_height_adj),
+        'K':(calibrate_T_xy['K'][0], calibrate_T_xy['K'][1], pigments_height['K'] -(0.315-0.300) - self.dip_depth + pigments_height_adj),
+        'W':(calibrate_T_xy['W'][0], calibrate_T_xy['W'][1], pigments_height['W'] -(0.315-0.300) - self.dip_depth + pigments_height_adj)},
+        5:
+        {'C':(calibrate_T_xy['C'][0], calibrate_T_xy['C'][1], pigments_height['C'] -(0.315-0.290) - self.dip_depth + pigments_height_adj), 
+        'M':(calibrate_T_xy['M'][0], calibrate_T_xy['M'][1], pigments_height['M'] -(0.315-0.290) - self.dip_depth + pigments_height_adj),
+        'Y':(calibrate_T_xy['Y'][0], calibrate_T_xy['Y'][1], pigments_height['Y'] -(0.315-0.290) - self.dip_depth + pigments_height_adj),
+        'K':(calibrate_T_xy['K'][0], calibrate_T_xy['K'][1], pigments_height['K'] -(0.315-0.290) - self.dip_depth + pigments_height_adj),
+        'W':(calibrate_T_xy['W'][0], calibrate_T_xy['W'][1], pigments_height['W'] -(0.315-0.290) - self.dip_depth + pigments_height_adj)}
         }
 
     def state_mix_place_count_incre(self):
@@ -90,25 +118,22 @@ class drawing_robot():
         # state_df[state_df['drawing_name']==self.drawing_name].iloc[0]['mix_place_count'] = self.mix_place_count
         state_df.to_csv('save_state.csv', index=False)
     
-    def state_num_physical_stroke_incre(self):
+    def state_index_incre(self):
         state_df = pd.read_csv('save_state.csv') 
-        assert int(state_df.iloc[0]['num_physical_stroke']) == self.num_physical_stroke
+        assert int(state_df.iloc[0]['index']) == self.index
         
-        self.num_physical_stroke += 1
+        self.index += 1
 
-        state_df.iloc[0, 2] = self.num_physical_stroke
+        state_df.iloc[0, 2] = self.index
         # state_df.iloc[0]['num_physical_stroke'] = self.num_physical_stroke
         # state_df[state_df['drawing_name']==self.drawing_name].iloc[0]['num_physical_stroke'] = self.num_physical_stroke
         state_df.to_csv('save_state.csv', index=False)
-    
-    def judge_similar(self, i, j):
-        return np.max(np.abs(np.array(i) - np.array(j))) < L_th
     
     def look_color_t_up_in_table(self):
         df_read = pd.read_csv(f'save_ok_color_pos.csv') # 读取表格
         self.got_pos = None
         for ind, i in df_read.iterrows():
-            if self.judge_similar((i['C'], i['M'], i['Y'], i['K']), self.C_t):
+            if judge_similar((i['C'], i['M'], i['Y'], i['K']), self.C_t):
                 self.got_pos = (i['x'], i['y'], i['z'])
     
     def save_ok_color_pos(self):
@@ -130,8 +155,8 @@ class drawing_robot():
     def init_save_state(self):
         drawing_name = self.drawing_name
         # 都是虚拟的用户坐标系坐标
-        df = pd.DataFrame(columns=['mix_place_count', 'drawing_name', 'num_physical_stroke'])
-        df = df.append( {'mix_place_count': 0, 'drawing_name': drawing_name, 'num_physical_stroke': 0}, ignore_index= True)
+        df = pd.DataFrame(columns=['mix_place_count', 'drawing_name', 'index'])
+        df = df.append( {'mix_place_count': 0, 'drawing_name': drawing_name, 'index': 0}, ignore_index= True)
         df.to_csv(f'save_state.csv', index=False)
 
     def get_what_pigment(self, robot, what_you_want):
@@ -146,6 +171,7 @@ class drawing_robot():
     def mix_pigment(self, robot):
         if self.got_pos:
             dest = self.got_pos
+            dest = (dest[0], dest[1], self.mix_place[NUM_BRUSH][0][2])
         else:
             dest = self.mix_place[self.num_brush][self.mix_place_count]
             
@@ -294,15 +320,19 @@ class drawing_robot():
         mere_move_cartesian(robot, 
         (canvas_offset_x + start_point_x, start_point_y, canvas_height + self.mix_place[self.num_brush][0][2] + 0.02))
         mere_move_cartesian(robot, 
-        (canvas_offset_x + start_point_x, start_point_y, canvas_height + self.mix_place[self.num_brush][0][2]))
+        (canvas_offset_x + start_point_x, start_point_y, canvas_height + self.mix_place[self.num_brush][0][2] - original_draw_depth))
 
         mid_points = calc_mid_points(canvas_offset_x + start_point_x, start_point_y, canvas_offset_x + end_point_x, end_point_y)
         for i in mid_points:
             mere_move_cartesian(robot, 
-        (i[0], i[1], canvas_height + self.mix_place[self.num_brush][0][2]))
+        (i[0], i[1], canvas_height + self.mix_place[self.num_brush][0][2] - original_draw_depth))
 
         mere_move_cartesian(robot, 
-        (canvas_offset_x + end_point_x, end_point_y, canvas_height + self.mix_place[self.num_brush][0][2]))
+        (canvas_offset_x + end_point_x, end_point_y, canvas_height + self.mix_place[self.num_brush][0][2] - original_draw_depth))
+        
+        mere_move_cartesian(robot, 
+        (canvas_offset_x + end_point_x, end_point_y, canvas_height + self.mix_place[self.num_brush][0][2] - original_draw_depth + 0.02))
+
 
     # 就画一笔，轨迹运动
     # 废弃

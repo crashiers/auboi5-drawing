@@ -15,16 +15,40 @@ from PIL import Image
 # 识别颜色不对就要把相机拔下来重新插电
 
 # 全局变量
-max_mix_count = 3
+check_every_num_physical_stroke = 10
+max_mix_count = 4
+min_mix_interval = 7
+NUM_BRUSH = 2
 init_two_saves = False
+
 ion = True
+
+L_th = 0.25 # 相似容忍度，0 to 1
+# L_th_got_pos = 0.35 # 相似容忍度，0 to 1
+L_th_got_pos = L_th # 相似容忍度，0 to 1
+# L_th = 0.38 # 0 to 1
+# L_th = 0.38 # 0 to 1
+# L_th = 0.15 # 0 to 1
+
 # robot要多用力画
 # original_draw_depth = 0.000
-original_draw_depth = 0.003
+# original_draw_depth = 0.001
+original_draw_depth =  0.005
 speed_divisor = 5 # 5是极限了，再快固定不住
 
+# original_mix_depth = 0.010 # 1
+original_mix_depth = 0.000 # 2
+# original_mix_depth = - 0.010
+# mix_depth_adj = 0.007
+
+emotion = 'sad'
+
+# original_dip_depth = 0.035 # 1
+original_dip_depth = 0.015 # 2
+# original_dip_depth = 0.003
+
 # canvas_height = - 0.01 # 画画的位置跟调色的z坐标本就不同
-canvas_height = + 0.032 - 0.004 - 0.008 # 画画的位置跟调色的z坐标本就不同
+canvas_height = + 0.042 - 0.004 - 0.008 # 画画的位置跟调色的z坐标本就不同
 canvas_offset_x = 0.205
 # CANVAS_X = 295 - 10 * 2
 # CANVAS_Y = 205
@@ -35,29 +59,70 @@ canvas_offset_x = 0.205
 CANVAS_X = 600 -  10 * 2
 CANVAS_Y = 500 - 5
 
-original_mix_depth = 0.001
-
 pigments_height_adj = 0.00
 # height_in_the_air = 0.20
 height_in_the_air = 0.15
 mix_place_xy = {1:
             [(-0.17 + 0.05 * j, 0.50 - i * 0.05) 
-            for j in range(4) for i in range(13) ],
+            for j in range(8) for i in range(10) ],
             # for j in range(4) for i in range(9) ],
             2:
             [(-0.17 + 0.05 * j, 0.50 - i * 0.05) 
-            for j in range(4) for i in range(13) ]
+            for j in range(8) for i in range(10) ],
+            # for j in range(4) for i in range(9) ]
+            3:
+            [(-0.17 + 0.05 * j, 0.50 - i * 0.05) 
+            for j in range(8) for i in range(10) ],
+            # for j in range(4) for i in range(9) ]
+            4:
+            [(-0.17 + 0.05 * j, 0.50 - i * 0.05) 
+            for j in range(8) for i in range(10) ],
+            # for j in range(4) for i in range(9) ]
+            5:
+            [(-0.17 + 0.05 * j, 0.50 - i * 0.05) 
+            for j in range(8) for i in range(10) ],
+            # for j in range(4) for i in range(9) ]
+            }
+mix_array_last_time = {1:
+            {(-0.17 + 0.05 * j, 0.50 - i * 0.05) : 0
+            for j in range(8) for i in range(10) },
+            # for j in range(4) for i in range(9) ],
+            2:
+            {(-0.17 + 0.05 * j, 0.50 - i * 0.05) : 0
+            for j in range(8) for i in range(10) },
+            # for j in range(4) for i in range(9) ]
+            3:
+            {(-0.17 + 0.05 * j, 0.50 - i * 0.05) : 0
+            for j in range(8) for i in range(10) },
+            # for j in range(4) for i in range(9) ]
+            4:
+            {(-0.17 + 0.05 * j, 0.50 - i * 0.05) : 0
+            for j in range(8) for i in range(10) },
+            # for j in range(4) for i in range(9) ]
+            5:
+            {(-0.17 + 0.05 * j, 0.50 - i * 0.05) : 0
+            for j in range(8) for i in range(10) }
             # for j in range(4) for i in range(9) ]
             }
 
+# mix_last_time = 0
+
 # 颜料高度，单位米
 pigments_height = {
-    'C': 0.065 - 0.004, 'M': 0.041 - 0.004, 'Y': 0.065 - 0.004, 'K': 0.058 - 0.004, 'W': 0.070 - 0.004
+    'C': 0.055 - 0.004, 'M': 0.010 - 0.004, 'Y': 0.055 - 0.004, 'K': 0.058 - 0.004, 'W': 0.053 - 0.004
     }
 
 # 大窗口
 window_every_brush = {1:
-np.array([(345 - 5 * 2, 326 - 2), (356 - 5, 339)])
+np.array([(339 - 5, 329), (353 - 5, 350)]),
+2:
+np.array([(341, 326), (356, 349)]),
+3:
+np.array([(339, 337), (349, 347)]),
+4:
+np.array([(346, 342), (362, 358)]),
+5:
+np.array([(359, 329), (383, 348)])
 }
 
 # # 用9*9的中间的小区域做均值
@@ -74,16 +139,7 @@ np.array([(345 - 5 * 2, 326 - 2), (356 - 5, 339)])
 # window_every_brush = win_new
 # # ic(win_new)
 
-
-L_th = 0.25 # 相似容忍度，0 to 1
-# L_th = 0.38 # 0 to 1
-# L_th = 0.38 # 0 to 1
-# L_th = 0.15 # 0 to 1
-
-# original_dip_depth = 0.000
-original_dip_depth = 0.009
-
-calibrate_coord_origin = [0.2446267249547194, -0.5945356050711661, 0.46189274173878764]
+calibrate_coord_origin = [0.2683583776067739, -0.6221894891561226, 0.457813437164197]
 calibrate_T_xy = {'C':(-0.285, 0.43), 
             'M':(-0.285, 0.35),
             'Y':(-0.285, 0.27),
@@ -91,8 +147,8 @@ calibrate_T_xy = {'C':(-0.285, 0.43),
             'W':(-0.285, 0.09)}
 
 mix_movement_length = 0.010
-check_every_num_physical_stroke = 10
 # check_every_num_physical_stroke = 5
+
 
 from_color_to_int = {'C':0 , 'M':1 , 'Y':2 , 'K':3 , 'W': 4}
 
@@ -119,11 +175,26 @@ def up_to_height_in_the_air(robot, height):
     
     robot.move_line(ik_result['joint'])
 
+def judge_similar( i, j):
+    return np.max(np.abs(np.array(i) - np.array(j))) < L_th
+
+def judge_pos_similar( i, j):
+    return np.max(np.abs(np.array(i) - np.array(j))) < 0.001
+
 def mix_movement(robot, current):
-    for i in range(3):
-        pos = ( current[0] + mix_movement_length, current[1], current[2]) 
+    delta = np.array((0, -1, 0, 1, 0)) * mix_movement_length
+    current = np.array(current)
+    # for i in range(3):
+    #     pos = ( current[0] + mix_movement_length, current[1], current[2]) 
+    # current_xy = np.array(( current[0], current[1] ) )
+    
+    for i in range(4):
+        
+        pos = current + np.array((delta[i], delta[i+1], 0))
+        # pos = ( current[0] + mix_movement_length, current[1], current[2]) 
         mere_move_cartesian(robot, pos)
-        mere_move_cartesian(robot, current)
+
+    mere_move_cartesian(robot, current)
 
 # 移动到某个点，用笛卡尔坐标
 def move_cartesian_in_up_way(robot, to_):
@@ -521,5 +592,6 @@ if __name__ == '__main__':
     # test_camera()
     # test_cal_mean_color_for_window()
 
-
-
+# test_img = Image.open('D:\BaiduNetdiskWorkspace\绘画作业\E43843D1-96F0-4A0D-B987-82FD69B3DD3B.png')
+# plt.imshow(test_img)
+# plt.show()

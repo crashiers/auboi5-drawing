@@ -74,7 +74,7 @@ def calibration_include_camera_for_each_brush(num_brush):
             #     print("无法读取摄像头！")
             
             # get_current_robo_state(robot) # 1
-            # mere_move_cartesian(robot, (0.0, 0, 0.0))
+            # mere_move_cartesian(robot, (0c.0, 0, 0.0))
 
             # up_to_height_in_the_air(robot, height_in_the_air) # 2 
 
@@ -88,21 +88,26 @@ def calibration_include_camera_for_each_brush(num_brush):
             # mere_move_cartesian(robot, (calibrate_T_xy['K'][0], calibrate_T_xy['K'][1], height_in_the_air))
             # mere_move_cartesian(robot, (calibrate_T_xy['W'][0], calibrate_T_xy['W'][1], 0.15))
             
-            drawing_robo = drawing_robot(num_brush, 'happy') # 4
+            drawing_robo = drawing_robot(num_brush, emotion) # 4
             
             # drawing_robo.recall_state()
             # drawing_robo.calc_pigments_color_target_coord()
             
-            # drawing_robo.get_what_pigment(robot, 'K') # 取得这种颜色，每句话的开始执行时和结束执行时都是低于15cm的
+            # drawing_robo.get_what_pigment(robot, 'W') # 取得这种颜色，每句话的开始执行时和结束执行时都是低于15cm的
             # dest = drawing_robo.mix_pigment(robot) # 每句话的开始执行时和结束执行时都是低于15cm的
 
-            # cap = cv2.VideoCapture(0) # 5 
-            # cv2.namedWindow('camera', cv2.WINDOW_AUTOSIZE)
-            # drawing_robo.capture_color(robot, cap) 
+            cap = cv2.VideoCapture(0) # 5 
+            cv2.namedWindow('camera', cv2.WINDOW_AUTOSIZE)
+            drawing_robo.capture_color(robot, cap) 
                     
-            # drawing_robo.recog_mean_color_for_window(window_every_brush)
+            drawing_robo.recog_mean_color_for_window(window_every_brush)
 
-            # drawing_robo.all_colors_and_show()
+            drawing_robo.all_colors_and_show()
+
+            cap.release()
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
 
             # 就用这个函数最好！
             # drawing_robo.draw_with_end_dot_by_mid_point( robot, 0.25, 0.25, 0.25, 0.) # 7
@@ -127,9 +132,7 @@ def calibration_include_camera_for_each_brush(num_brush):
 
 
 
-            # cap.release()
-            # cv2.waitKey(0)
-            # cv2.destroyAllWindows()
+            
 
             return
 
@@ -301,4 +304,4 @@ def calibration_include_camera_for_each_brush(num_brush):
         Auboi5Robot.uninitialize()
 
 if __name__ == '__main__':
-    calibration_include_camera_for_each_brush(1)
+    calibration_include_camera_for_each_brush(NUM_BRUSH)
